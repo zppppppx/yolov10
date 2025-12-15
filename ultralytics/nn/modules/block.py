@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
+from .DCNv4.DCNv4_op.DCNv4.modules.dcnv4 import DCNv4
 from .transformer import TransformerBlock
 from ultralytics.utils.torch_utils import fuse_conv_and_bn
 
@@ -38,6 +39,7 @@ __all__ = (
     "CBFuse",
     "CBLinear",
     "Silence",
+    "DCNAlignment",
 )
 
 
@@ -825,3 +827,18 @@ class SCDown(nn.Module):
 
     def forward(self, x):
         return self.cv2(self.cv1(x))
+    
+
+class DCNAlignment(nn.Module):
+    def __init__(self, c1, c2, k=3, s=1, p=1, groups=1):
+        super().__init__()
+        self.fuse = nn.Sequential(
+            Conv(c1, c2, kernel_size=1, bias=False),
+        )
+
+        self.dcn = DCNv4(c2, k, s, p, groups=groups)
+    def forward(self, x, y):
+        cond = torch.cat([x, y], dim=1)
+        cond = self.fuse(cond)
+        cond = self.dcn(cond)
+        return cond
