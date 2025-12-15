@@ -837,8 +837,8 @@ class DCNAlignment(nn.Module):
         )
 
         self.dcn = DCNv4(c2, k, s, p, groups=groups)
-    def forward(self, x, y):
-        cond = torch.cat([x, y], dim=1)
+    def forward(self, x):
+        cond = torch.cat(x, dim=1)
         cond = self.fuse(cond)
         cond = self.dcn(cond)
         return cond
